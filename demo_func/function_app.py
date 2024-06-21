@@ -80,6 +80,51 @@ def get_list_file(ctx,rootFolder,last_extract_date,re_file=None):
            
     return list_file
 
+def get_list_file_v2(ctx,rootFolder,last_extract_date,re_file=None, recursive=False):
+    '''
+    ctx: context
+    last_extract_date: 
+        -only get files from this date onwards (e.g. useful for incremental loading)
+        -must be of the form '2024-04-23T17:00:00.000+00:00', so that we can .split('T')
+    re_file: what is it? in file.properties['Name']
+    '''
+    final_file = []
+    files = ctx.web.get_folder_by_server_relative_url(rootFolder).files
+    ctx.load(files)
+    ctx.execute_query()
+    final_file.extend([file.properties['ServerRelativeUrl'] for file in files])
+    
+    
+    final_subfolder = []
+
+    subfolder = ctx.web.get_folder_by_server_relative_url(rootFolder).folders
+    ctx.load(subfolder)
+    ctx.execute_query()
+    
+    if recursive == True:
+        final_subfolder = get_list_subfolder_v2(
+                    ctx = ctx,
+                    rootFolder = rootFolder,
+                    recursive = recursive
+        )
+
+        for folder in final_subfolder:
+            final_file.extend(
+                get_list_file_v2(
+                    ctx = ctx,
+                    rootFolder = folder,
+                    last_extract_date = last_extract_date,
+                    re_file=None,
+                    recursive = recursive
+                )
+            )
+
+    #final_subfolder.extend([i.properties['ServerRelativeUrl'] for i in subfolder])
+    #ctx.load()
+    #final_file.extend([i.properties['ServerRelativeUrl'] for i in subfolder])
+    #final_subfolder = [i.properties['ServerRelativeUrl'] for i in subfolder]
+
+    return final_file
 
 
 
@@ -115,32 +160,36 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     ctx = ClientContext(site_url, ctx_auth)
 
     # -------Testing with sub folders 
-    # list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20")
-    # list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/9 - Miscellaneous Communication")
-    list_folder = get_list_subfolder_v2(ctx, 
-                                        rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/",
-                                        recursive=True)
-    #list_folder.sort() 
-    # print(sub_folder)
+    # # list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20")
+    # # list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/9 - Miscellaneous Communication")
+    # list_folder = get_list_subfolder_v2(ctx, 
+    #                                     rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/",
+    #                                     recursive=True)
+    # list_folder.sort() # for about 20 subfolders, total time is 11s, where the sort() not take much
+    # # print(sub_folder)
 
-    return func.HttpResponse(
-        f"This HTTP triggered function executed successfully.\n {list_folder}",
-        status_code=200
-    )
+    # return func.HttpResponse(
+    #     f"This HTTP triggered function executed successfully.\n {list_folder}",
+    #     status_code=200
+    # )
 
     # -------Testing with files
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/EPS23652/BBB/9 - Miscellaneous Communication"
-    # last_extract_date = '2020-01-01T00:00:00'
-    # # last_extract_date = '2024-06-21T00:00:00'
-    # re_file = None
-    # list_file = get_list_file(ctx,
-    #                           rootFolder = sharepoint_folder,
-    #                           last_extract_date = last_extract_date,
-    #                           re_file = re_file)
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/1 - Voyage Fixture"
+    sharepoint_folder = "EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/"
+    last_extract_date = '2020-01-01T00:00:00'
+    # last_extract_date = '2024-06-21T00:00:00'
+    re_file = None
+    list_file = get_list_file_v2(ctx,
+                              rootFolder = sharepoint_folder,
+                              last_extract_date = last_extract_date,
+                              re_file = re_file,
+                              recursive=True)
     
-    # # list_file = ['123']
-    # return func.HttpResponse(
-    #     f"This HTTP triggered function executed successfully.\n {list_file[0]}",
-    #     status_code=200
-    # )    
+    # print(len(list_file))
+    # list_file = ['123']
+    return func.HttpResponse(
+        f"This HTTP triggered function executed successfully.\n {len(list_file), list_file}",
+        status_code=200
+    )    
 
