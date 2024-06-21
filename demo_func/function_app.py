@@ -29,6 +29,32 @@ def get_list_subfolder(ctx,rootFolder):
 
     return sub_folder
 
+def get_list_subfolder_v2(ctx,rootFolder, recursive=False):
+    '''
+    ctx: context
+    '''
+    # final_subfolder = list()
+    final_subfolder = []
+
+    subfolder = ctx.web.get_folder_by_server_relative_url(rootFolder).folders
+    ctx.load(subfolder)
+    ctx.execute_query()
+    
+    if recursive == True:
+        for folder in subfolder:
+            final_subfolder.extend(
+                get_list_subfolder_v2(
+                    ctx = ctx,
+                    rootFolder = folder.properties['ServerRelativeUrl'],
+                    recursive = recursive
+                )
+            )
+
+    final_subfolder.extend([i.properties['ServerRelativeUrl'] for i in subfolder])
+    #final_subfolder = [i.properties['ServerRelativeUrl'] for i in subfolder]
+
+    return final_subfolder
+
 
 def get_list_file(ctx,rootFolder,last_extract_date,re_file=None):
     '''
@@ -45,23 +71,10 @@ def get_list_file(ctx,rootFolder,last_extract_date,re_file=None):
     ctx.execute_query()
     list_file = []
     for file in files:
-        if re_file == None: #and file.properties['TimeLastModified'].split('T')[0]:# >= last_extract_date.split('T')[0]:
-            list_file.append(file.properties['ServerRelativeUrl']) #get path of file is 'ServerRelativeUrl'        
-            
-            # it's a datetime.datetime object
-            #print(file.properties['TimeLastModified'])
-            # extract only date part
-            # print(file.properties['TimeLastModified'].date())
-            #convert date part to string
-            print(dt.datetime.strftime(file.properties['TimeLastModified'].date(), "%Y-%m-%d"))
-            
-            # string with T, so that you can split('T')[0]
-            #dt_str = dt.datetime.strftime(file.properties['TimeLastModified'], "%Y-%m-%dT%H:%M:%S")
-            #print(d1)
+        if re_file == None and dt.datetime.strftime(file.properties['TimeLastModified'].date(), "%Y-%m-%d") >= last_extract_date.split('T')[0]:
+            list_file.append(file.properties['ServerRelativeUrl']) #get path of file is 'ServerRelativeUrl'
 
-            # last_extract_date already str
-            # print(last_extract_date.split('T')[0])
-
+        # need to define what happen if we are not reading latest files like above
         elif re_file.lower() in file.properties['Name'].lower() and file.properties['TimeLastModified'].split('T')[0] >= last_extract_date.split('T')[0]:#get data be modified from now date - 1
             list_file.append(file.properties['ServerRelativeUrl']) #get path of file is 'ServerRelativeUrl'
            
@@ -73,10 +86,6 @@ def get_list_file(ctx,rootFolder,last_extract_date,re_file=None):
 @app.route(route="HttpExample")
 def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
-
-    #name = req.params.get('name')
-    a = req.params.get('a')
-    b = req.params.get('b')
 
     # Application ID and secret
     client_id       = os.environ["client_id"]
@@ -106,29 +115,32 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     ctx = ClientContext(site_url, ctx_auth)
 
     # -------Testing with sub folders 
-    list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System")
-    list_folder.sort()
+    # list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20")
+    # list_folder = get_list_subfolder(ctx, rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/9 - Miscellaneous Communication")
+    list_folder = get_list_subfolder_v2(ctx, 
+                                        rootFolder="EPS Filing System/VOYAGE FILE/ADRIATIC SEA/",
+                                        recursive=True)
+    #list_folder.sort() 
     # print(sub_folder)
 
-    # return func.HttpResponse(f"Testing.", status_code=200)
-
-    # return func.HttpResponse(
-    #     f"This HTTP triggered function executed successfully.\n {list_folder}",
-    #     status_code=200
-    # )
+    return func.HttpResponse(
+        f"This HTTP triggered function executed successfully.\n {list_folder}",
+        status_code=200
+    )
 
     # -------Testing with files
-    sharepoint_folder = "EPS Filing System/VOYAGE FILE/EPS23652/BBB/9 - Miscellaneous Communication"
-    last_extract_date = '2020-01-01T00:00:00'
-    re_file = None
-    list_file = get_list_file(ctx,
-                              rootFolder = sharepoint_folder,
-                              last_extract_date = last_extract_date,
-                              re_file = re_file)
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/EPS23652/BBB/9 - Miscellaneous Communication"
+    # last_extract_date = '2020-01-01T00:00:00'
+    # # last_extract_date = '2024-06-21T00:00:00'
+    # re_file = None
+    # list_file = get_list_file(ctx,
+    #                           rootFolder = sharepoint_folder,
+    #                           last_extract_date = last_extract_date,
+    #                           re_file = re_file)
     
-    # list_file = ['123']
-    return func.HttpResponse(
-        f"This HTTP triggered function executed successfully.\n {list_file[0]}",
-        status_code=200
-    )    
+    # # list_file = ['123']
+    # return func.HttpResponse(
+    #     f"This HTTP triggered function executed successfully.\n {list_file[0]}",
+    #     status_code=200
+    # )    
 
