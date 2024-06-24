@@ -139,9 +139,9 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     # Configuration to connect blob storage
     # req_body = req.get_json() # need to send a json, o/w error
 
-    # connection_string = os.environ["storage_account"]
-    # container_name = os.environ["blob_container"]              
-    # service = BlobServiceClient.from_connection_string(conn_str=connection_string)
+    connection_string = os.environ["storage_account"]
+    container_name = os.environ["blob_container"]              
+    service = BlobServiceClient.from_connection_string(conn_str=connection_string)
 
     site_url = os.environ["sharepoint_site_url"]
 
@@ -188,6 +188,19 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     
     # print(len(list_file))
     # list_file = ['123']
+
+    blob_folder = "test"
+    for file_url in list_file:
+        bytes_file_obj = io.BytesIO()
+        ctx.web.get_file_by_server_relative_path(file_url).download(bytes_file_obj).execute_query()
+        file_name = file_url.split('/')[-1]
+
+        # where to put the file in blob folder
+        path_new_file = f'{blob_folder}/{file_name}'    
+        blob_client = service.get_blob_client(container=container_name,blob = path_new_file)
+        blob_client.upload_blob(bytes_file_obj.getvalue(),overwrite=True)
+
+
     return func.HttpResponse(
         f"This HTTP triggered function executed successfully.\n {len(list_file), list_file}",
         status_code=200
