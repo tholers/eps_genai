@@ -133,9 +133,9 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     client_secret   = os.environ["secret_value"]
 
     # Configuration to connect blob storage
-    req_body = req.get_json() # need to send a json, o/w error
-    print(req_body.get("a"))
-    print(req_body.get("b"))
+    # req_body = req.get_json() # need to send a json, o/w error
+    # print(req_body.get("a"))
+    # print(req_body.get("b"))
 
     connection_string = os.environ["storage_account"]
     container_name = os.environ["blob_container"]              
@@ -172,7 +172,7 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     # )
 
     # -------Testing with files
-    sharepoint_folder = "EPS Filing System/VOYAGE FILE/EPS23652/BBB/9 - Miscellaneous Communication"
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/EPS23652/BBB/9 - Miscellaneous Communication"
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/1 - Voyage Fixture"
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1004/20/"
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/ADRIATIC SEA/1006"
@@ -180,6 +180,15 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/ADRIATIC SEA/"
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/ATLANTIC EMERALD"
     # sharepoint_folder = "EPS Filing System/VOYAGE FILE/"
+    
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/AMALFI BAY"
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/BRIGHTWAY"
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/CARTIER"
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/CMA CGM ARCTIC"
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/MOUNT GAEA"
+    # sharepoint_folder = "EPS Filing System/VOYAGE FILE/SERENE SEA"
+    sharepoint_folder = "EPS Filing System/VOYAGE FILE/ZIM ARIES"
+    
     last_extract_date = '2020-01-01T00:00:00'
     # last_extract_date = '2024-06-21T00:00:00'
     # last_extract_date = '2024-01-01T00:00:00'
@@ -194,6 +203,7 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
     
     print('done getting list file, now working on downloading file')
     blob_folder = "test2"
+    count_files = 0
     for file_url in list_file:
         # print(file_url)
         # print(1)
@@ -208,9 +218,12 @@ def HttpExample(req: func.HttpRequest) -> func.HttpResponse:
         path_new_file = f'{blob_folder}/{blob_folder_batch}/{file_name}'  
         # print(path_new_file)
         blob_client = service.get_blob_client(container=container_name,blob = path_new_file)
-        # print(2)
+
         blob_client.upload_blob(bytes_file_obj.getvalue(),overwrite=True)
-        # print(3)
+        
+
+        count_files += 1
+        print(f'done uploading {count_files} files')
 
     print('done uploading all files')
 
